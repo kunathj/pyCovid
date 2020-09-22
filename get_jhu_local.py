@@ -67,6 +67,8 @@ def purge_last_days(n_purged=5):
     """
     if n_purged == 0:
         return # Prevent removing all files.
+    if not os.path.isdir("data"):
+        return
     for day_df in sorted(os.listdir("data"))[-n_purged:]:
         os.remove(f"data/{day_df}")
 
