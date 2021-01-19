@@ -1,5 +1,6 @@
 # Code based on blog post: https://iscinumpy.gitlab.io/post/johns-hopkins-covid/.
 
+from collections import defaultdict
 import numpy as np
 import os
 import pandas as pd
@@ -14,6 +15,7 @@ def download_day(day: pd.Timestamp):
             "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/"
             "master/csse_covid_19_data/csse_covid_19_daily_reports/"
             f"{day:%m-%d-%Y}.csv",
+            na_values=['#VALUE!', '#DIV/0!'],
         )
     except HTTPError:
         return pd.DataFrame()
@@ -23,8 +25,10 @@ def download_day(day: pd.Timestamp):
     table.columns = [
         f.replace("/", "_")
         .replace(" ", "_")
+        .replace("Case-Fatality_Ratio", "Case_Fatality_Ratio")
         .replace("Latitude", "Lat")
         .replace("Longitude", "Long_")
+        .replace("Incidence_Rate", "Incident_Rate")
         for f in table.columns
     ]
 
@@ -98,8 +102,11 @@ def get_all_days(end_day=None):
     date_range_list = pd.date_range("2020-01-22", end_day)
     day_generator = (get_day(day) for day in date_range_list)
 
+    as_types = defaultdict(int)
+    for float_c in ["Incident_Rate", "Case_Fatality_Ratio"]:
+        as_types[float_c] = float
     # Make a big dataframe, NaN is 0.
-    df = pd.concat(day_generator).fillna(0).astype(int)
+    df = pd.concat(day_generator).fillna(0).astype(as_types)
 
     # Remove a few duplicate keys.
     df = df.groupby(level=df.index.names).sum()
